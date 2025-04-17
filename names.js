@@ -1,31 +1,30 @@
 // names.js
-// CSCV 337 Assignment 5 - Baby Names using SheetBest API
-//Trigger GitHub Pages Deployment
+// CSCV 337 Assignment 5 - Baby Names
+// This script dynamically loads baby name data from a REST API,
+// populates a dropdown list, and generates a ranking bar graph with meaning.
+// Author: Rick Schroeder
+
 "use strict";
 
 window.onload = function () {
+  const apiBase = "https://api.sheetbest.com/sheets/c1e0ead6-6df0-49f7-ace0-ec90562a8c3f";
   const select = $("babyselect");
   const graph = $("graph");
   const meaning = $("meaning");
   const errorBox = $("errors");
-  const apiBase = "https://api.sheetbest.com/sheets/c1e0ead6-6df0-49f7-ace0-ec90562a8c3f";
 
+  // Fetch and populate baby name options
   fetch(apiBase)
     .then(response => response.json())
     .then(data => {
-      let names = [...new Set(data.map(entry => entry.name))].sort();
-      names.forEach(name => {
-        let opt = document.createElement("option");
-        opt.text = name;
-        opt.value = name;
-        select.appendChild(opt);
-      });
-      select.disabled = false;
+      const names = [...new Set(data.map(entry => entry.name))].sort();
+      populateSelect(names);
     })
     .catch(err => {
       showError("Failed to load names: " + err.message);
     });
 
+  // When a name is selected, fetch and display its data
   select.onchange = function () {
     const selectedName = select.value;
     clearError();
@@ -39,7 +38,7 @@ window.onload = function () {
       .then(data => {
         if (data.length === 0) return;
 
-        // Sort by year in ascending order
+        // Sort records by year
         data.sort((a, b) => parseInt(a.year) - parseInt(b.year));
         buildGraph(data);
 
@@ -52,15 +51,26 @@ window.onload = function () {
       });
   };
 
+  // Populates the dropdown menu with sorted baby names
+  function populateSelect(names) {
+    names.forEach(name => {
+      let opt = document.createElement("option");
+      opt.text = name;
+      opt.value = name;
+      select.appendChild(opt);
+    });
+    select.disabled = false;
+  }
+
+  // Builds the ranking bar graph and year labels
   function buildGraph(data) {
-    const graph = $("graph");
     data.forEach((entry, index) => {
-      const rank = parseInt(entry.rank || entry.Rank || 1000); // fallback in case of bad data
+      const rank = parseInt(entry.rank || entry.Rank || 1000);
       const year = entry.year;
       const x = 10 + index * 60;
       const height = Math.floor((1000 - rank) / 4);
 
-      // Bar
+      // Create bar element
       let bar = document.createElement("div");
       bar.className = "ranking";
       bar.style.left = x + "px";
@@ -70,7 +80,7 @@ window.onload = function () {
       if (rank <= 10) bar.classList.add("popular");
       graph.appendChild(bar);
 
-      // Year Label
+      // Create year label element
       let yearLabel = document.createElement("p");
       yearLabel.className = "year";
       yearLabel.style.left = x + "px";
@@ -79,17 +89,20 @@ window.onload = function () {
     });
   }
 
+  // Clears the graph area
   function clearGraph() {
     while (graph.firstChild) {
       graph.removeChild(graph.firstChild);
     }
   }
 
+  // Displays an error message in the error box
   function showError(msg) {
     errorBox.textContent = msg;
     errorBox.style.color = "red";
   }
 
+  // Clears the error box
   function clearError() {
     errorBox.textContent = "";
   }
